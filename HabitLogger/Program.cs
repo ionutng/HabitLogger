@@ -49,7 +49,7 @@ static void GetUserInput()
                 Insert();
                 break;
             case "3":
-                Console.WriteLine("delete");
+                Delete();
                 break;
             case "4":
                 Console.WriteLine("update");
@@ -114,6 +114,78 @@ static void GetRecords()
         Console.WriteLine();
         foreach (var data in tableData)
             Console.WriteLine($"{data.Date:dd-MM-yyyy} - {data.Quantity} glasses.");
+    }
+}
+
+static void Delete()
+{
+    Console.WriteLine("\nType 1 if you wish to delete only one record.");
+    Console.WriteLine("Type 2 if you wish to delete all of the records.");
+    Console.WriteLine("\nType 0 if you wish to return to the main menu.");
+
+    string deleteOption = Console.ReadLine();
+
+    if (deleteOption == "0")
+        GetUserInput();
+    else if (deleteOption == "1")
+    {
+        GetRecords();
+        Console.WriteLine("\nWhich day would you like to delete? Type using the Format: (dd-mm-yyyy)");
+        string dateString = Console.ReadLine();
+        DateTime date;
+
+        if (!DateTime.TryParseExact(dateString, "dd-MM-yyyy", new CultureInfo("en-US"), DateTimeStyles.None, out date))
+        {
+            Console.WriteLine("Incorrect format!");
+            Delete();
+        }
+
+        using (var connection = new SqliteConnection("Data Source=habit-logger.db"))
+        {
+            connection.Open();
+
+            var command = connection.CreateCommand();
+            command.CommandText = $"DELETE FROM drinking_water WHERE Date = \"{date:dd-MM-yyyy}\"";
+
+            int rowCount = command.ExecuteNonQuery();
+
+            if (rowCount == 0)
+            {
+                Console.WriteLine($"\nThe record with Date: {date:dd-MM-yyyy} doesn't exist.");
+                Delete();
+            }
+            else
+            {
+                Console.WriteLine("\nThe record has been successfully deleted!");
+            }
+
+            connection.Close();
+            
+        }
+    }
+    else if (deleteOption == "2")
+    {
+        using (var connection = new SqliteConnection("Data Source=habit-logger.db"))
+        {
+            connection.Open();
+
+            var command = connection.CreateCommand();
+            command.CommandText = $"DELETE FROM drinking_water";
+
+            int rowCount = command.ExecuteNonQuery();
+
+            if (rowCount == 0)
+            {
+                Console.WriteLine("\nThere are no records yet");
+                GetUserInput();
+            }
+            else
+            {
+                Console.WriteLine("\nAll of the records have been successfully deleted!");
+            }
+
+            connection.Close();
+        }
     }
 }
 
