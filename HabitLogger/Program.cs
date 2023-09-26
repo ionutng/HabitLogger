@@ -1,4 +1,5 @@
 ﻿using Microsoft.Data.Sqlite;
+using System.Globalization;
 
 using (var connection = new SqliteConnection("Data Source=habit-logger.db"))
 {
@@ -16,4 +17,133 @@ using (var connection = new SqliteConnection("Data Source=habit-logger.db"))
     command.ExecuteNonQuery();
 
     connection.Close();
+}
+
+GetUserInput();
+
+static void GetUserInput()
+{
+    while (true)
+    {
+        Console.WriteLine("\nWelcome to the Habit Logger app!");
+        Console.WriteLine("What would you like to do?\n");
+        Console.WriteLine("Type 0 to Close Application.");
+        Console.WriteLine("Type 1 to View All Records.");
+        Console.WriteLine("Type 2 to Insert Record.");
+        Console.WriteLine("Type 3 to Delete Record.");
+        Console.WriteLine("Type 4 to Update Record.");
+        Console.WriteLine("------------------------------");
+
+        string userInput = Console.ReadLine();
+
+        switch (userInput)
+        {
+            case "0":
+                Console.WriteLine("Have a good day!");
+                Environment.Exit(0);
+                break;
+            case "1":
+                GetRecords();
+                break;
+            case "2":
+                Insert();
+                break;
+            case "3":
+                Console.WriteLine("delete");
+                break;
+            case "4":
+                Console.WriteLine("update");
+                break;
+            default:
+                Console.WriteLine("Wrong input! Please type a number between 0 and 4.");
+                break;
+        }
+    }
+}
+
+static void Insert()
+{
+    string date = GetDateInput();
+
+    int quantity = GetNumberInput();
+
+    using (var connection = new SqliteConnection("Data Source=habit-logger.db"))
+    {
+        connection.Open();
+
+        var command = connection.CreateCommand();
+        command.CommandText = $"INSERT INTO drinking_water (Date, Quantity) VALUES (\"{date}\", {quantity})";
+
+        command.ExecuteNonQuery();
+
+        connection.Close();
+    }
+}
+
+static void GetRecords()
+{
+    using (var connection = new SqliteConnection("Data Source=habit-logger.db"))
+    {
+        connection.Open();
+
+        var command = connection.CreateCommand();
+        command.CommandText = $"SELECT Date, Quantity FROM drinking_water";
+
+        List<DrinkingWater> tableData = new List<DrinkingWater>();
+
+        SqliteDataReader reader = command.ExecuteReader();
+
+        if (reader.HasRows)
+        {
+            while (reader.Read())
+            {
+                tableData.Add(new DrinkingWater
+                {
+                    Date = DateTime.ParseExact(reader.GetString(0), "dd-MM-yyyy", new CultureInfo("en-US")),
+                    Quantity = reader.GetInt32(1)
+                });
+            }
+        }
+        else
+        {
+            Console.WriteLine("\nThere are no records yet!");
+        }
+
+        connection.Close();
+
+        Console.WriteLine();
+        foreach (var data in tableData)
+            Console.WriteLine($"{data.Date:dd-MM-yyyy} - {data.Quantity} glasses.");
+    }
+}
+
+static string GetDateInput()
+{
+    Console.WriteLine("Please insert the date: (Format: dd-mm-yyyy) or Type 0 to return to the main menu.");
+
+    string dateInput = Console.ReadLine();
+
+    if (dateInput == "0") 
+        GetUserInput();
+
+    return dateInput;
+}
+
+static int GetNumberInput()
+{
+    Console.WriteLine("Please insert the number of glasses or Type 0 to return to the main menu.");
+    
+    string numberInput = Console.ReadLine();
+
+    if (numberInput == "0")
+        GetUserInput();
+
+    return Convert.ToInt32(numberInput);
+}
+
+public class DrinkingWater
+{
+    public DateTime Date { get; set; }
+    
+    public int Quantity { get; set; }
 }
