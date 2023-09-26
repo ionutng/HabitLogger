@@ -1,4 +1,5 @@
 ﻿using Microsoft.Data.Sqlite;
+using Microsoft.VisualBasic;
 using System.Globalization;
 
 using (var connection = new SqliteConnection("Data Source=habit-logger.db"))
@@ -52,7 +53,7 @@ static void GetUserInput()
                 Delete();
                 break;
             case "4":
-                Console.WriteLine("update");
+                Update();
                 break;
             default:
                 Console.WriteLine("Wrong input! Please type a number between 0 and 4.");
@@ -63,16 +64,16 @@ static void GetUserInput()
 
 static void Insert()
 {
-    string date = GetDateInput();
+    DateTime date = GetDateInput("Please insert the date: (Format: dd-mm-yyyy) or Type 0 to return to the main menu.");
 
-    int quantity = GetNumberInput();
+    int quantity = GetNumberInput("Please insert the number of glasses or Type 0 to return to the main menu.");
 
     using (var connection = new SqliteConnection("Data Source=habit-logger.db"))
     {
         connection.Open();
 
         var command = connection.CreateCommand();
-        command.CommandText = $"INSERT INTO drinking_water (Date, Quantity) VALUES (\"{date}\", {quantity})";
+        command.CommandText = $"INSERT INTO drinking_water (Date, Quantity) VALUES (\"{date:dd-MM-yyyy}\", {quantity})";
 
         command.ExecuteNonQuery();
 
@@ -111,7 +112,7 @@ static void GetRecords()
 
         connection.Close();
 
-        Console.WriteLine();
+        Console.WriteLine("\nThe records are:");
         foreach (var data in tableData)
             Console.WriteLine($"{data.Date:dd-MM-yyyy} - {data.Quantity} glasses.");
     }
@@ -130,11 +131,9 @@ static void Delete()
     else if (deleteOption == "1")
     {
         GetRecords();
-        Console.WriteLine("\nWhich day would you like to delete? Type using the Format: (dd-mm-yyyy)");
-        string dateString = Console.ReadLine();
-        DateTime date;
+        DateTime date = GetDateInput("\nWhich day would you like to delete? Type using the Format: (dd-mm-yyyy)");
 
-        if (!DateTime.TryParseExact(dateString, "dd-MM-yyyy", new CultureInfo("en-US"), DateTimeStyles.None, out date))
+        if (date == DateTime.MinValue)
         {
             Console.WriteLine("Incorrect format!");
             Delete();
@@ -189,21 +188,124 @@ static void Delete()
     }
 }
 
-static string GetDateInput()
+static void Update()
 {
-    Console.WriteLine("Please insert the date: (Format: dd-mm-yyyy) or Type 0 to return to the main menu.");
+    Console.WriteLine("\nWhat would you like to update?");
+    Console.WriteLine("Type 1 for date");
+    Console.WriteLine("Type 2 for quantity");
+    Console.WriteLine("Type 3 for both");
+    Console.WriteLine("\nType 0 if you wish to return to the main menu.");
+
+    string updateChoice = Console.ReadLine();
+
+    if (updateChoice == "1")
+    {
+        GetRecords();
+        DateTime oldDate = GetDateInput("\nWhat date would you like to update? Type it in the Format: (dd-MM-yyyy)");
+        DateTime newDate = GetDateInput("Please insert the new date: (Format: dd-mm-yyyy) or Type 0 to return to the main menu.");
+
+        using (var connection = new SqliteConnection("Data Source=habit-logger.db"))
+        {
+            connection.Open();
+
+            var command = connection.CreateCommand();
+            command.CommandText = $"UPDATE drinking_water SET Date = \"{newDate:dd-MM-yyyy}\" where Date = \"{oldDate:dd-MM-yyyy}\"";
+
+            int rowCount = command.ExecuteNonQuery();
+
+            if (rowCount == 0)
+            {
+                Console.WriteLine($"\nA record with the date {oldDate:dd-MM-yyyy} doesn't exist.");
+                GetUserInput();
+            }
+            else
+            {
+                Console.WriteLine("\nThe record has been successfully updated!");
+            }
+
+            connection.Close();
+        }
+    }
+    else if (updateChoice == "2")
+    {
+        GetRecords();
+        DateTime date = GetDateInput("\nWhat date would you like to update? Type it in the Format: (dd-MM-yyyy)");
+        int quantity = GetNumberInput("Please insert the new number of glasses or Type 0 to return to the main menu.");
+
+        using (var connection = new SqliteConnection("Data Source=habit-logger.db"))
+        {
+            connection.Open();
+
+            var command = connection.CreateCommand();
+            command.CommandText = $"UPDATE drinking_water SET Quantity = {quantity} where Date = \"{date:dd-MM-yyyy}\"";
+
+            int rowCount = command.ExecuteNonQuery();
+
+            if (rowCount == 0)
+            {
+                Console.WriteLine($"\nA record with the date {date:dd-MM-yyyy} doesn't exist.");
+                GetUserInput();
+            }
+            else
+            {
+                Console.WriteLine("\nThe record has been successfully updated!");
+            }
+
+            connection.Close();
+        }
+    }
+    else if (updateChoice == "3")
+    {
+        GetRecords();
+        DateTime oldDate = GetDateInput("\nWhat date would you like to update? Type it in the Format: (dd-MM-yyyy)");
+        DateTime newDate = GetDateInput("Please insert the new date: (Format: dd-mm-yyyy) or Type 0 to return to the main menu.");
+        int quantity = GetNumberInput("Please insert the new number of glasses or Type 0 to return to the main menu.");
+
+        using (var connection = new SqliteConnection("Data Source=habit-logger.db"))
+        {
+            connection.Open();
+
+            var command = connection.CreateCommand();
+            command.CommandText = $"UPDATE drinking_water SET Date = \"{newDate:dd-MM-yyyy}\", Quantity = {quantity} where Date = \"{oldDate:dd-MM-yyyy}\"";
+
+            int rowCount = command.ExecuteNonQuery();
+
+            if (rowCount == 0)
+            {
+                Console.WriteLine($"\nA record with the date {oldDate:dd-MM-yyyy} doesn't exist.");
+                GetUserInput();
+            }
+            else
+            {
+                Console.WriteLine("\nThe record has been successfully updated!");
+            }
+
+            connection.Close();
+        }
+    }
+}
+
+static DateTime GetDateInput(string message)
+{
+    Console.WriteLine(message);
 
     string dateInput = Console.ReadLine();
 
     if (dateInput == "0") 
         GetUserInput();
 
-    return dateInput;
+    if (!DateTime.TryParseExact(dateInput, "dd-MM-yyyy", new CultureInfo("en-US"), DateTimeStyles.None, out DateTime date))
+    {
+        Console.WriteLine("Incorrect format!");
+        return DateTime.MinValue;
+    }
+
+    return date;
 }
 
-static int GetNumberInput()
+static int GetNumberInput(string message)
 {
-    Console.WriteLine("Please insert the number of glasses or Type 0 to return to the main menu.");
+    Console.WriteLine(message);
     
     string numberInput = Console.ReadLine();
 
